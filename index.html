@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Grid Maze - Smooth Keyboard Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #fef6e4; }
+        #frame { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 15px solid #172c66; box-sizing: border-box; pointer-events: none; z-index: 10; }
+        #ui { position: absolute; top: 40px; left: 50px; display: flex; gap: 25px; z-index: 20; }
+        .heart {
+            position: relative; width: 4px; height: 4px; background: transparent;
+            box-shadow: 
+                4px 0px #172c66, 8px 0px #172c66, 16px 0px #172c66, 20px 0px #172c66,
+                0px 4px #172c66, 4px 4px #f582ae, 8px 4px #f582ae, 12px 4px #172c66, 16px 4px #f582ae, 20px 4px #f582ae, 24px 4px #172c66,
+                0px 8px #172c66, 4px 8px #f582ae, 8px 8px #f582ae, 12px 8px #172c66, 16px 8px #f582ae, 20px 8px #f582ae, 24px 8px #172c66,
+                0px 12px #172c66, 4px 12px #f582ae, 8px 12px #f582ae, 12px 12px #172c66, 16px 12px #f582ae, 20px 12px #f582ae, 24px 12px #172c66,
+                4px 16px #172c66, 8px 16px #f582ae, 12px 16px #f582ae, 16px 16px #f582ae, 20px 16px #172c66,
+                8px 20px #172c66, 12px 20px #172c66;
+            margin-right: 24px;
+        }
+        .heart.lost { filter: opacity(0.3) grayscale(1); }
+        #left-ui-container { position: absolute; bottom: 40px; left: 45px; display: flex; flex-direction: column; gap: 10px; z-index: 20; }
+        #gimmick-legend { background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 8px; font-size: 11px; color: #172c66; display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
+        .legend-icon { width: 12px; height: 12px; border: 1px solid #172c66; display: inline-block; }
+        #controls-guide { background: rgba(255, 255, 255, 0.7); padding: 15px; border-radius: 8px; font-size: 13px; color: #172c66; line-height: 1.8; }
+        .key { border: 2px solid #172c66; padding: 1px 5px; border-radius: 4px; font-weight: bold; }
+        #right-ui-container { position: absolute; bottom: 40px; right: 45px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 30; }
+        #settings-menu { color: #172c66; font-weight: bold; background: rgba(255, 255, 255, 0.7); padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px; min-width: 180px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; }
+        select:focus { outline: none; }
+        select { padding: 5px; border: 2px solid #172c66; border-radius: 4px; background: #fef6e4; color: #172c66; font-weight: bold; cursor: pointer; }
+        #regen-button { padding: 15px 30px; background-color: #172c66; color: #fef6e4; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; }
+        #regen-button:hover { background-color: #001858; transform: scale(1.02); }
+        .msg-window { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            padding: 40px 60px; display: none; z-index: 100; 
+            font-family: 'Press Start 2P', cursive; text-align: center; 
+            background-color: #fef6e4; border: 12px solid #172c66; 
+            box-shadow: 10px 10px 0px rgba(23, 44, 102, 0.3); 
+            pointer-events: none; font-size: 24px; white-space: nowrap; 
+        }
+        .msg-anim { animation: floatUpFade 1.2s ease-out forwards; }
+        @keyframes floatUpFade {
+            0% { transform: translate(-50%, 0%); opacity: 0; }
+            20% { transform: translate(-50%, -55%); opacity: 1; }
+            80% { transform: translate(-50%, -55%); opacity: 1; }
+            100% { transform: translate(-50%, -100%); opacity: 0; }
+        }
+        #message-overlay.fall { color: #f582ae; }
+        #message-overlay.goal { color: #8bd3dd; }
+        #message-overlay.new-maze { color: #fb9062; }
+        .text-blink { animation: blinkText 0.8s infinite; }
+        @keyframes blinkText { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="frame"></div>
+    <div id="ui"></div>
+    <div id="left-ui-container">
+        <div id="gimmick-legend">
+            <span class="legend-icon" style="background:#00ffff;"></span><span>GOAL</span>
+            <span class="legend-icon" style="background:#ffd700;"></span><span>SPEED</span>
+            <span class="legend-icon" style="background:#9370db;"></span><span>WARP</span>
+            <span class="legend-icon" style="background:#f582ae;"></span><span>WALL</span>
+        </div>
+        <div id="controls-guide">
+            <div id="guide-text"></div>
+            <div><span class="key">SPACE</span> RESET</div>
+        </div>
+    </div>
+    <div id="right-ui-container">
+        <div id="settings-menu">
+            <div class="setting-item"><label>SIZE</label><select id="size-select"><option value="12">SMALL</option><option value="24" selected>MEDIUM</option><option value="30">LARGE</option></select></div>
+            <div class="setting-item"><label>LEVEL</label><select id="level-select"><option value="easy">EASY</option><option value="normal" selected>NORMAL</option><option value="hard">HARD</option></select></div>
+            <div class="setting-item"><label>INPUT</label><select id="input-select"><option value="key">KEYBOARD</option><option value="mouse" selected>MOUSE</option></select></div>
+        </div>
+        <button id="regen-button">NEW MAZE</button>
+    </div>
+    <div id="message-overlay" class="msg-window"></div>
+    <div id="click-prompt" class="msg-window" style="color: #172c66; pointer-events: none;"><span class="text-blink">CLICK TO START</span></div>
+    <script type="importmap"> { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js" } } </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
